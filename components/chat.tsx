@@ -20,18 +20,20 @@ type Message = {
   originalContent?: string
 }
 
-// Language options
+// Updated language options with Indian languages
 const languages = [
-  { code: "en", name: "English" },
-  { code: "es", name: "Spanish" },
-  { code: "fr", name: "French" },
-  { code: "de", name: "German" },
-  { code: "zh", name: "Chinese" },
-  { code: "ja", name: "Japanese" },
-  { code: "ar", name: "Arabic" },
-  { code: "hi", name: "Hindi" },
-  { code: "ru", name: "Russian" },
-  { code: "pt", name: "Portuguese" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "sd", name: "Sindhi", flag: "🇵🇰" },
+  { code: "ta", name: "Tamil", flag: "🇮🇳" },
+  { code: "te", name: "Telugu", flag: "🇮🇳" },
+  { code: "ur", name: "Urdu", flag: "🇵🇰" },
+  { code: "gu", name: "Gujarati", flag: "🇮🇳" },
+  { code: "mr", name: "Marathi", flag: "🇮🇳" },
+  { code: "bn", name: "Bengali", flag: "🇧🇩" },
+  { code: "ml", name: "Malayalam", flag: "🇮🇳" },
+  { code: "kn", name: "Kannada", flag: "🇮🇳" },
+  { code: "pa", name: "Punjabi", flag: "🇮🇳" },
 ]
 
 export function Chat() {
@@ -50,6 +52,7 @@ export function Chat() {
   const [speechSupported, setSpeechSupported] = useState(false)
   const [recognitionSupported, setRecognitionSupported] = useState(false)
   const [translating, setTranslating] = useState(false)
+  const [shortChatMode, setShortChatMode] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
@@ -63,13 +66,9 @@ export function Chat() {
       setRecognitionSupported(true)
       recognitionRef.current = new SpeechRecognition()
 
-      // Configure recognition settings
-      recognitionRef.current.continuous = false // Changed to false for better control
+      recognitionRef.current.continuous = false
       recognitionRef.current.interimResults = true
       recognitionRef.current.maxAlternatives = 1
-
-      // Set language based on current selection
-      recognitionRef.current.lang = getLanguageCode(language)
 
       recognitionRef.current.onstart = () => {
         console.log("Speech recognition started")
@@ -89,7 +88,6 @@ export function Chat() {
           }
         }
 
-        // Update input with final transcript or show interim results
         if (finalTranscript) {
           setInput(finalTranscript.trim())
           setIsListening(false)
@@ -102,7 +100,6 @@ export function Chat() {
         console.error("Speech recognition error:", event.error)
         setIsListening(false)
 
-        // Handle different error types
         switch (event.error) {
           case "no-speech":
             console.log("No speech detected. Please try speaking again.")
@@ -137,13 +134,11 @@ export function Chat() {
       setSpeechSupported(true)
       speechSynthesisRef.current = new SpeechSynthesisUtterance()
 
-      // Load voices
       const loadVoices = () => {
         const voices = window.speechSynthesis.getVoices()
         console.log("Available voices:", voices.length)
       }
 
-      // Load voices when they become available
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = loadVoices
       }
@@ -152,39 +147,48 @@ export function Chat() {
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop()
+        try {
+          recognitionRef.current.stop()
+        } catch (error) {
+          console.log("Recognition cleanup error:", error)
+        }
       }
       if (window.speechSynthesis) {
-        window.speechSynthesis.cancel()
+        try {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel()
+          }
+        } catch (error) {
+          console.log("Speech synthesis cleanup error:", error)
+        }
       }
     }
-  }, []) // Remove language dependency to avoid recreation
+  }, [])
 
-  // Add effect to update recognition language when language changes
   useEffect(() => {
     if (recognitionRef.current) {
       recognitionRef.current.lang = getLanguageCode(language)
     }
   }, [language])
 
-  // Add helper function to get proper language codes for speech recognition
   const getLanguageCode = (lang: string): string => {
     const speechLanguageCodes: Record<string, string> = {
       en: "en-US",
-      es: "es-ES",
-      fr: "fr-FR",
-      de: "de-DE",
-      zh: "zh-CN",
-      ja: "ja-JP",
-      ar: "ar-SA",
       hi: "hi-IN",
-      ru: "ru-RU",
-      pt: "pt-BR",
+      sd: "sd-IN",
+      ta: "ta-IN",
+      te: "te-IN",
+      ur: "ur-PK",
+      gu: "gu-IN",
+      mr: "mr-IN",
+      bn: "bn-IN",
+      ml: "ml-IN",
+      kn: "kn-IN",
+      pa: "pa-IN",
     }
     return speechLanguageCodes[lang] || "en-US"
   }
 
-  // Update the toggleListening function
   const toggleListening = () => {
     if (!recognitionSupported) {
       console.error("Speech recognition not supported")
@@ -200,10 +204,8 @@ export function Chat() {
       }
     } else {
       try {
-        // Clear any existing input
         setInput("")
 
-        // Set the language before starting
         if (recognitionRef.current) {
           recognitionRef.current.lang = getLanguageCode(language)
           recognitionRef.current.start()
@@ -212,7 +214,6 @@ export function Chat() {
         console.error("Error starting speech recognition:", error)
         setIsListening(false)
 
-        // Show user-friendly error message
         if (error instanceof Error) {
           if (error.name === "InvalidStateError") {
             console.log("Speech recognition is already active")
@@ -224,7 +225,6 @@ export function Chat() {
     }
   }
 
-  // Update the speakText function with better error handling
   const speakText = (text: string) => {
     if (!speechSupported || !speechSynthesisRef.current) {
       console.error("Speech synthesis not supported")
@@ -232,74 +232,112 @@ export function Chat() {
     }
 
     try {
-      // Cancel any ongoing speech
+      // Cancel any ongoing speech first
       window.speechSynthesis.cancel()
 
-      // Clean text for better speech
-      const cleanText = text
-        .replace(/<[^>]*>/g, "")
-        .replace(/\n+/g, " ")
-        .trim()
+      // Wait a bit for cancellation to complete
+      setTimeout(() => {
+        const cleanText = text
+          .replace(/<[^>]*>/g, "")
+          .replace(/\n+/g, " ")
+          .replace(/\*\*/g, "")
+          .replace(/\*/g, "")
+          .replace(/__/g, "")
+          .replace(/==/g, "")
+          .replace(/`/g, "")
+          .replace(/#/g, "")
+          .trim()
 
-      if (!cleanText) {
-        console.log("No text to speak")
-        return
-      }
+        if (!cleanText) {
+          console.log("No text to speak")
+          return
+        }
 
-      // Set up the utterance
-      speechSynthesisRef.current.text = cleanText
-      speechSynthesisRef.current.rate = 0.9
-      speechSynthesisRef.current.pitch = 1
-      speechSynthesisRef.current.volume = 1
+        // Create a new utterance instance to avoid reuse issues
+        const utterance = new SpeechSynthesisUtterance(cleanText)
+        utterance.rate = 0.9
+        utterance.pitch = 1
+        utterance.volume = 1
 
-      // Find appropriate voice for the selected language
-      const voices = window.speechSynthesis.getVoices()
-      const languageCode = getLanguageCode(language)
-      const languageVoice = voices.find(
-        (voice) => voice.lang.startsWith(languageCode.split("-")[0]) || voice.lang === languageCode,
-      )
+        // Find appropriate voice for the selected language
+        const voices = window.speechSynthesis.getVoices()
+        const languageCode = getLanguageCode(language)
+        const languageVoice = voices.find(
+          (voice) => voice.lang.startsWith(languageCode.split("-")[0]) || voice.lang === languageCode,
+        )
 
-      if (languageVoice) {
-        speechSynthesisRef.current.voice = languageVoice
-        console.log("Using voice:", languageVoice.name)
-      } else {
-        console.log("No specific voice found for language, using default")
-      }
+        if (languageVoice) {
+          utterance.voice = languageVoice
+          console.log("Using voice:", languageVoice.name)
+        }
 
-      // Set language
-      speechSynthesisRef.current.lang = languageCode
+        utterance.lang = languageCode
 
-      // Event handlers
-      speechSynthesisRef.current.onstart = () => {
-        setIsSpeaking(true)
-        console.log("Speech started")
-      }
+        // Event handlers with better error handling
+        utterance.onstart = () => {
+          setIsSpeaking(true)
+          console.log("Speech started")
+        }
 
-      speechSynthesisRef.current.onend = () => {
-        setIsSpeaking(false)
-        console.log("Speech ended")
-      }
+        utterance.onend = () => {
+          setIsSpeaking(false)
+          console.log("Speech ended")
+        }
 
-      speechSynthesisRef.current.onerror = (event) => {
-        setIsSpeaking(false)
-        console.error("Speech synthesis error:", event.error)
-      }
+        utterance.onerror = (event) => {
+          setIsSpeaking(false)
+          console.log("Speech synthesis error:", event.error)
 
-      // Start speaking
-      window.speechSynthesis.speak(speechSynthesisRef.current)
+          // Handle specific error types gracefully
+          switch (event.error) {
+            case "interrupted":
+              console.log("Speech was interrupted - this is normal when stopping speech")
+              break
+            case "canceled":
+              console.log("Speech was canceled")
+              break
+            case "not-allowed":
+              console.error("Speech synthesis not allowed")
+              break
+            case "network":
+              console.error("Network error during speech synthesis")
+              break
+            default:
+              console.error("Unknown speech synthesis error:", event.error)
+          }
+        }
+
+        utterance.onpause = () => {
+          console.log("Speech paused")
+        }
+
+        utterance.onresume = () => {
+          console.log("Speech resumed")
+        }
+
+        // Start speaking with error handling
+        try {
+          window.speechSynthesis.speak(utterance)
+        } catch (speakError) {
+          console.error("Error starting speech:", speakError)
+          setIsSpeaking(false)
+        }
+      }, 100) // Small delay to ensure cancellation completes
     } catch (error) {
       console.error("Error in speakText:", error)
       setIsSpeaking(false)
     }
   }
 
-  // Update the stopSpeaking function
   const stopSpeaking = () => {
     try {
       if (speechSupported && window.speechSynthesis) {
-        window.speechSynthesis.cancel()
+        // Check if speech synthesis is speaking before canceling
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel()
+          console.log("Speech stopped")
+        }
         setIsSpeaking(false)
-        console.log("Speech stopped")
       }
     } catch (error) {
       console.error("Error stopping speech:", error)
@@ -308,7 +346,7 @@ export function Chat() {
   }
 
   const formatMessage = (content: string) => {
-    // Split content into lines
+    // Split content into lines and process each line
     const lines = content.split("\n").filter((line) => line.trim() !== "")
 
     return lines
@@ -321,7 +359,7 @@ export function Chat() {
           return (
             <div
               key={index}
-              className="text-lg font-bold text-blue-700 dark:text-blue-300 mt-4 mb-2 border-b border-blue-200 dark:border-blue-700 pb-1"
+              className="text-xl font-bold text-blue-800 dark:text-blue-300 mt-6 mb-3 border-b-2 border-blue-300 dark:border-blue-600 pb-2"
             >
               {headingText}
             </div>
@@ -332,10 +370,30 @@ export function Chat() {
         if (trimmedLine.match(/^#{1,4}\s+(.+)$/)) {
           const headingText = trimmedLine.replace(/^#{1,4}\s+/, "")
           return (
-            <div key={index} className="text-base font-semibold text-blue-600 dark:text-blue-400 mt-3 mb-1">
+            <div key={index} className="text-lg font-bold text-blue-700 dark:text-blue-400 mt-4 mb-2">
               {headingText}
             </div>
           )
+        }
+
+        // Handle numbered lists (1., 2., 3., etc.)
+        if (trimmedLine.match(/^\d+\.\s+(.+)$/)) {
+          const match = trimmedLine.match(/^(\d+)\.\s+(.+)$/)
+          if (match) {
+            const [, number, text] = match
+            const formattedText = formatInlineText(text)
+            return (
+              <div key={index} className="ml-4 mb-2 flex items-start">
+                <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-sm font-bold rounded-full mr-3 mt-0.5 flex-shrink-0">
+                  {number}
+                </span>
+                <div
+                  className="font-medium text-gray-800 dark:text-gray-200"
+                  dangerouslySetInnerHTML={{ __html: formattedText }}
+                />
+              </div>
+            )
+          }
         }
 
         // Handle bullet points with ** bold text **
@@ -343,12 +401,16 @@ export function Chat() {
           const match = trimmedLine.match(/^\*\s+\*\*(.+?)\*\*:\s*(.+)$/)
           if (match) {
             const [, boldText, description] = match
+            const formattedDescription = formatInlineText(description)
             return (
-              <div key={index} className="ml-4 mb-2 flex items-start">
-                <span className="text-blue-500 mr-2 mt-1">•</span>
+              <div key={index} className="ml-4 mb-3 flex items-start">
+                <span className="text-blue-500 mr-3 mt-1.5 text-lg">•</span>
                 <div>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">{boldText}:</span>
-                  <span className="ml-1">{description}</span>
+                  <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{boldText}:</span>
+                  <span
+                    className="ml-2 text-gray-700 dark:text-gray-300"
+                    dangerouslySetInnerHTML={{ __html: formattedDescription }}
+                  />
                 </div>
               </div>
             )
@@ -358,49 +420,47 @@ export function Chat() {
         // Handle regular bullet points with asterisks
         if (trimmedLine.match(/^\*\s+(.+)$/)) {
           const bulletText = trimmedLine.replace(/^\*\s+/, "")
-          // Remove any remaining ** formatting
-          const cleanText = bulletText.replace(/\*\*(.+?)\*\*/g, "$1")
+          const formattedText = formatInlineText(bulletText)
           return (
-            <div key={index} className="ml-4 mb-1 flex items-start">
-              <span className="text-blue-500 mr-2 mt-1">•</span>
-              <span>{cleanText}</span>
-            </div>
-          )
-        }
-
-        // Handle numbered lists
-        if (trimmedLine.match(/^\d+\.\s+(.+)$/)) {
-          const listText = trimmedLine.replace(/^\d+\.\s+/, "")
-          const cleanText = listText.replace(/\*\*(.+?)\*\*/g, "$1")
-          return (
-            <div key={index} className="ml-4 mb-1 font-medium">
-              <span className="text-blue-600 mr-2">{trimmedLine.match(/^\d+/)?.[0]}.</span>
-              {cleanText}
+            <div key={index} className="ml-4 mb-2 flex items-start">
+              <span className="text-blue-500 mr-3 mt-1.5 text-lg">•</span>
+              <div className="text-gray-700 dark:text-gray-300" dangerouslySetInnerHTML={{ __html: formattedText }} />
             </div>
           )
         }
 
         // Handle lines that end with colon (like section headers)
-        if (trimmedLine.endsWith(":") && trimmedLine.length < 100) {
+        if (trimmedLine.endsWith(":") && trimmedLine.length < 100 && !trimmedLine.includes("**")) {
           return (
-            <div key={index} className="font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1">
+            <div key={index} className="font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2 text-base">
               {trimmedLine}
             </div>
           )
         }
 
-        // Handle regular paragraphs - remove ** formatting
-        if (trimmedLine.length > 0) {
-          // Remove bold markdown formatting
-          let cleanText = trimmedLine.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          // Remove italic formatting
-          cleanText = cleanText.replace(/\*(.+?)\*/g, "<em>$1</em>")
-
+        // Handle important highlighted text (lines with multiple ** or key phrases)
+        if (
+          trimmedLine.includes("**") &&
+          (trimmedLine.includes("important") || trimmedLine.includes("note") || trimmedLine.includes("remember"))
+        ) {
+          const formattedText = formatInlineText(trimmedLine)
           return (
             <div
               key={index}
-              className="mb-2 leading-relaxed text-gray-700 dark:text-gray-300"
-              dangerouslySetInnerHTML={{ __html: cleanText }}
+              className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 rounded-r-lg"
+              dangerouslySetInnerHTML={{ __html: formattedText }}
+            />
+          )
+        }
+
+        // Handle regular paragraphs
+        if (trimmedLine.length > 0) {
+          const formattedText = formatInlineText(trimmedLine)
+          return (
+            <div
+              key={index}
+              className="mb-3 leading-relaxed text-gray-700 dark:text-gray-300"
+              dangerouslySetInnerHTML={{ __html: formattedText }}
             />
           )
         }
@@ -410,11 +470,81 @@ export function Chat() {
       .filter(Boolean)
   }
 
+  // Helper function to format inline text with bold, italic, underline, and highlights
+  const formatInlineText = (text: string): string => {
+    let formattedText = text
+
+    // Handle bold text (**text**)
+    formattedText = formattedText.replace(
+      /\*\*(.+?)\*\*/g,
+      '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>',
+    )
+
+    // Handle italic text (*text*)
+    formattedText = formattedText.replace(
+      /(?<!\*)\*([^*]+?)\*(?!\*)/g,
+      '<em class="italic text-gray-800 dark:text-gray-200">$1</em>',
+    )
+
+    // Handle underlined text (__text__)
+    formattedText = formattedText.replace(/__(.+?)__/g, '<u class="underline decoration-blue-500 decoration-2">$1</u>')
+
+    // Handle highlighted text (==text==)
+    formattedText = formattedText.replace(
+      /==(.+?)==/g,
+      '<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">$1</mark>',
+    )
+
+    // Handle code text (`text`)
+    formattedText = formattedText.replace(
+      /`(.+?)`/g,
+      '<code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono">$1</code>',
+    )
+
+    // Handle important keywords with special styling
+    const importantKeywords = [
+      "premium",
+      "deductible",
+      "coverage",
+      "policy",
+      "claim",
+      "benefit",
+      "exclusion",
+      "liability",
+      "comprehensive",
+      "collision",
+      "term life",
+      "whole life",
+      "health insurance",
+      "auto insurance",
+      "home insurance",
+      "travel insurance",
+      "disability insurance",
+    ]
+
+    importantKeywords.forEach((keyword) => {
+      const regex = new RegExp(`\\b(${keyword})\\b`, "gi")
+      formattedText = formattedText.replace(
+        regex,
+        '<span class="font-semibold text-blue-700 dark:text-blue-300">$1</span>',
+      )
+    })
+
+    return formattedText
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
-    // Stop listening if active
     if (isListening) {
       recognitionRef.current?.stop()
       setIsListening(false)
@@ -426,10 +556,8 @@ export function Chat() {
     setIsLoading(true)
 
     try {
-      // Get response in English first
-      const response = await handleChatCompletion(messages, userMessage)
+      const response = await handleChatCompletion(messages, userMessage, shortChatMode)
 
-      // If language is not English, translate the response
       if (language !== "en") {
         setTranslating(true)
         try {
@@ -471,20 +599,16 @@ export function Chat() {
   const handleLanguageChange = async (newLanguage: string) => {
     setLanguage(newLanguage)
 
-    // If we have messages and changing language, translate the last assistant message
     const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")
 
     if (lastAssistantMessage && lastAssistantMessage.content) {
-      // Use original English content if available, otherwise use current content
       const contentToTranslate = lastAssistantMessage.originalContent || lastAssistantMessage.content
 
-      // Only translate if not already in English and we're not switching to English
       if (contentToTranslate && newLanguage !== "en") {
         setTranslating(true)
         try {
           const translatedContent = await translateText(contentToTranslate, newLanguage)
 
-          // Update the last assistant message with the translated content
           setMessages((prev) =>
             prev.map((msg, i) =>
               i === prev.length - 1 && msg.role === "assistant"
@@ -498,7 +622,6 @@ export function Chat() {
           setTranslating(false)
         }
       } else if (newLanguage === "en" && lastAssistantMessage.originalContent) {
-        // If switching to English and we have the original content, use it
         setMessages((prev) =>
           prev.map((msg, i) =>
             i === prev.length - 1 && msg.role === "assistant" && msg.originalContent
@@ -513,7 +636,7 @@ export function Chat() {
   return (
     <div className="flex flex-col h-full">
       <Card className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-3 border-b flex items-center justify-between bg-muted/30">
+        <div className="p-3 border-b flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-blue-600" />
             <span className="font-medium">Insurance Advisor</span>
@@ -522,16 +645,40 @@ export function Chat() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button
+                    variant={shortChatMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShortChatMode(!shortChatMode)}
+                    className={cn(
+                      "transition-all duration-200 text-xs px-2 py-1 h-8",
+                      shortChatMode && "bg-green-600 hover:bg-green-700",
+                    )}
+                  >
+                    {shortChatMode ? "💬 Short" : "📝 Detailed"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{shortChatMode ? "Switch to detailed responses" : "Switch to short, casual responses"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <div className="flex items-center gap-1.5">
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <Select value={language} onValueChange={handleLanguageChange}>
-                      <SelectTrigger className="w-[110px] h-8">
+                      <SelectTrigger className="w-[130px] h-8">
                         <SelectValue placeholder="Language" />
                       </SelectTrigger>
                       <SelectContent>
                         {languages.map((lang) => (
                           <SelectItem key={lang.code} value={lang.code}>
-                            {lang.name}
+                            <span className="flex items-center gap-2">
+                              <span>{lang.flag}</span>
+                              <span>{lang.name}</span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -583,7 +730,8 @@ export function Chat() {
                                   className="text-xs cursor-pointer"
                                   onClick={() => speakText(message.content)}
                                 >
-                                  {languages.find((l) => l.code === language)?.name || language}
+                                  {languages.find((l) => l.code === language)?.flag}{" "}
+                                  {languages.find((l) => l.code === language)?.name}
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -607,7 +755,7 @@ export function Chat() {
                       )}
                     </>
                   ) : (
-                    <div className="text-white">{message.content}</div>
+                    <div className="text-white font-medium">{message.content}</div>
                   )}
                 </div>
               </div>
@@ -631,7 +779,7 @@ export function Chat() {
         <div className="p-4 border-t bg-background/50">
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
-              placeholder={`Ask about insurance in ${languages.find((l) => l.code === language)?.name || "English"}...`}
+              placeholder={`${shortChatMode ? "Quick question" : "Ask about insurance"} in ${languages.find((l) => l.code === language)?.name || "English"}...`}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
