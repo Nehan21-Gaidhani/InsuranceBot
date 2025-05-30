@@ -20,7 +20,7 @@ type Message = {
   originalContent?: string
 }
 
-// Updated language options with Indian languages
+// Updated language options without flags
 const languages = [
   { code: "en", name: "English" },
   { code: "hi", name: "Hindi" },
@@ -30,8 +30,8 @@ const languages = [
   { code: "ur", name: "Urdu" },
   { code: "gu", name: "Gujarati" },
   { code: "mr", name: "Marathi" },
-  { code: "bn", name: "Bengali"},
-  { code: "ml", name: "Malayalam"},
+  { code: "bn", name: "Bengali" },
+  { code: "ml", name: "Malayalam" },
   { code: "kn", name: "Kannada" },
   { code: "pa", name: "Punjabi" },
 ]
@@ -41,7 +41,7 @@ export function Chat() {
     {
       role: "assistant",
       content:
-        "Hello! I'm your AI Insurance Advisor. How can I help you today? ",
+        "Hello! I'm your AI Insurance Advisor. How can I help you today? You can ask me about insurance policies, coverage options, or use our specialized tools for personalized assistance.",
     },
   ])
   const [input, setInput] = useState("")
@@ -645,17 +645,28 @@ export function Chat() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant={shortChatMode ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShortChatMode(!shortChatMode)}
-                    className={cn(
-                      "transition-all duration-200 text-xs px-2 py-1 h-8",
-                      shortChatMode && "bg-green-600 hover:bg-green-700",
-                    )}
-                  >
-                    {shortChatMode ? "💬 Short" : "📝 Detailed"}
-                  </Button>
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {shortChatMode ? "💬 Short" : "📝 Detailed"}
+                    </span>
+                    <button
+                      onClick={() => setShortChatMode(!shortChatMode)}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                        shortChatMode ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300",
+                          shortChatMode ? "translate-x-6" : "translate-x-1",
+                        )}
+                      />
+                      <span className="sr-only">
+                        {shortChatMode ? "Switch to detailed responses" : "Switch to short responses"}
+                      </span>
+                    </button>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{shortChatMode ? "Switch to detailed responses" : "Switch to short, casual responses"}</p>
@@ -675,10 +686,7 @@ export function Chat() {
                       <SelectContent>
                         {languages.map((lang) => (
                           <SelectItem key={lang.code} value={lang.code}>
-                            <span className="flex items-center gap-2">
-                              <span>{lang.flag}</span>
-                              <span>{lang.name}</span>
-                            </span>
+                            {lang.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -730,7 +738,6 @@ export function Chat() {
                                   className="text-xs cursor-pointer"
                                   onClick={() => speakText(message.content)}
                                 >
-                                  {languages.find((l) => l.code === language)?.flag}{" "}
                                   {languages.find((l) => l.code === language)?.name}
                                 </Badge>
                               </TooltipTrigger>
