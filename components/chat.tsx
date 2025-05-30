@@ -22,18 +22,18 @@ type Message = {
 
 // Updated language options with Indian languages
 const languages = [
-  { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "hi", name: "Hindi", flag: "🇮🇳" },
-  { code: "sd", name: "Sindhi", flag: "🇵🇰" },
-  { code: "ta", name: "Tamil", flag: "🇮🇳" },
-  { code: "te", name: "Telugu", flag: "🇮🇳" },
-  { code: "ur", name: "Urdu", flag: "🇵🇰" },
-  { code: "gu", name: "Gujarati", flag: "🇮🇳" },
-  { code: "mr", name: "Marathi", flag: "🇮🇳" },
-  { code: "bn", name: "Bengali", flag: "🇧🇩" },
-  { code: "ml", name: "Malayalam", flag: "🇮🇳" },
-  { code: "kn", name: "Kannada", flag: "🇮🇳" },
-  { code: "pa", name: "Punjabi", flag: "🇮🇳" },
+  { code: "en", name: "English" },
+  { code: "hi", name: "Hindi" },
+  { code: "sd", name: "Sindhi" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "ur", name: "Urdu" },
+  { code: "gu", name: "Gujarati" },
+  { code: "mr", name: "Marathi" },
+  { code: "bn", name: "Bengali"},
+  { code: "ml", name: "Malayalam"},
+  { code: "kn", name: "Kannada" },
+  { code: "pa", name: "Punjabi" },
 ]
 
 export function Chat() {
