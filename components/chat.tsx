@@ -41,7 +41,7 @@ export function Chat() {
     {
       role: "assistant",
       content:
-        "Hello! I'm your AI Insurance Advisor. How can I help you today? You can ask me about insurance policies, coverage options, or use our specialized tools for personalized assistance.",
+        "Hello! I'm your AI Insurance Advisor. How can I help you today? ",
     },
   ])
   const [input, setInput] = useState("")
