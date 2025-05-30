@@ -32,7 +32,11 @@ type ProfileData = {
   }
 }
 
-export async function handleChatCompletion(messages: Message[], userMessage: Message): Promise<string> {
+export async function handleChatCompletion(
+  messages: Message[],
+  userMessage: Message,
+  shortChatMode = false,
+): Promise<string> {
   try {
     // Prepare conversation history for the AI
     const conversationHistory = messages
@@ -44,12 +48,46 @@ export async function handleChatCompletion(messages: Message[], userMessage: Mes
 You are an AI Insurance Advisor, an expert in all types of insurance policies and coverage options.
 You provide helpful, accurate information about insurance topics.
 
+${
+  shortChatMode
+    ? `
+IMPORTANT: You are now in SHORT CHAT MODE. Respond like a knowledgeable friend giving quick, casual advice:
+- Keep responses brief (2-3 sentences max)
+- Use casual, friendly language
+- Skip detailed explanations unless specifically asked
+- Be direct and to the point
+- Use simple words and avoid jargon
+- Think of it like texting a friend who knows insurance
+`
+    : `
+Provide detailed, comprehensive responses with proper formatting.
+`
+}
+
 Previous conversation:
 ${conversationHistory}
 
 User: ${userMessage.content}
 
-Provide a helpful, informative response about insurance. Use clear, professional formatting without markdown symbols. Structure your response with proper headings and bullet points, but avoid using asterisks (*), hash symbols (#), or other markdown formatting. Instead, use clear language and natural formatting.
+${
+  shortChatMode
+    ? `
+Give a quick, friendly response like you're texting a friend. Keep it short and casual but accurate.
+`
+    : `
+Provide a helpful, informative response about insurance. Use proper formatting with:
+- **Bold text** for important terms and key points
+- *Italic text* for emphasis and definitions
+- __Underlined text__ for critical information
+- ==Highlighted text== for warnings or very important notes
+- Numbered lists (1., 2., 3.) for step-by-step processes
+- Bullet points (*) for features, benefits, or lists
+- Clear headings using # for main topics and ## for subtopics
+- Use \`code formatting\` for specific terms, amounts, or technical details
+
+Structure your response professionally with proper headings, bullet points, and formatting to make it easy to read and understand.
+`
+}
 `
 
     // Generate response using AI SDK with Gemini
@@ -58,15 +96,34 @@ Provide a helpful, informative response about insurance. Use clear, professional
       prompt,
       system: `You are an AI Insurance Advisor specializing in explaining insurance policies, coverage options, and helping users understand complex insurance terms in simple language. You're knowledgeable about health, auto, home, life, travel, and business insurance.
 
-CRITICAL FORMATTING RULES:
-- DO NOT use markdown formatting like *, **, #, ##, ###
-- DO NOT use asterisks for bullet points or emphasis
-- Use clear, natural language without special symbols
-- Structure information with clear headings using plain text
-- Use simple bullet points with words like "First:", "Second:", etc.
-- Write in a conversational, professional tone
-- Use line breaks for better readability
-- Avoid any markdown or special formatting symbols`,
+${
+  shortChatMode
+    ? `
+SHORT CHAT MODE ACTIVE:
+- Respond like a knowledgeable friend
+- Keep responses under 50 words when possible
+- Use casual, conversational tone
+- Be direct and helpful
+- Skip lengthy explanations
+- Use everyday language, not insurance jargon
+- Think "quick text message to a friend"
+`
+    : `
+FORMATTING GUIDELINES:
+- Use **bold** for important insurance terms, key points, and critical information
+- Use *italic* for emphasis, definitions, and explanations
+- Use __underline__ for warnings, deadlines, or very important information
+- Use ==highlight== for critical warnings or must-know information
+- Use numbered lists (1., 2., 3.) for processes, steps, or rankings
+- Use bullet points (*) for features, benefits, coverage options, or simple lists
+- Use # for main headings and ## for subheadings
+- Use \`backticks\` for specific amounts, percentages, or technical terms
+- Structure responses with clear sections and proper formatting
+- Make responses visually appealing and easy to scan
+
+Always provide comprehensive, well-formatted responses that are easy to read and understand.
+`
+}`,
     })
 
     return text
@@ -84,12 +141,13 @@ export async function translateText(text: string, targetLanguage: string): Promi
     const prompt = `
 Translate the following insurance-related text into ${getLanguageName(targetLanguage)}. 
 Maintain the professional tone and insurance terminology accuracy.
-Keep any formatting like paragraph breaks and bullet points.
+Keep any formatting like paragraph breaks, bullet points, bold text, italic text, and numbered lists.
+Preserve all markdown formatting including **, *, __, ==, \`, #, ##, etc.
 
 Text to translate:
 ${text}
 
-Important: Provide ONLY the translated text without any explanations or notes.
+Important: Provide ONLY the translated text with preserved formatting without any explanations or notes.
 `
 
     const { text: translatedText } = await generateText({
@@ -97,7 +155,7 @@ Important: Provide ONLY the translated text without any explanations or notes.
       prompt,
       system: `You are a professional translator specializing in insurance and financial terminology. 
 Translate the provided text accurately into the requested language while maintaining the original meaning, 
-tone, and formatting. Do not add any comments or explanations - return only the translated text.`,
+tone, and ALL formatting including markdown. Do not add any comments or explanations - return only the translated text with preserved formatting.`,
     })
 
     return translatedText
@@ -110,15 +168,17 @@ tone, and formatting. Do not add any comments or explanations - return only the 
 function getLanguageName(languageCode: string): string {
   const languages: Record<string, string> = {
     en: "English",
-    es: "Spanish",
-    fr: "French",
-    de: "German",
-    zh: "Chinese",
-    ja: "Japanese",
-    ar: "Arabic",
     hi: "Hindi",
-    ru: "Russian",
-    pt: "Portuguese",
+    sd: "Sindhi",
+    ta: "Tamil",
+    te: "Telugu",
+    ur: "Urdu",
+    gu: "Gujarati",
+    mr: "Marathi",
+    bn: "Bengali",
+    ml: "Malayalam",
+    kn: "Kannada",
+    pa: "Punjabi",
   }
 
   return languages[languageCode] || languageCode
